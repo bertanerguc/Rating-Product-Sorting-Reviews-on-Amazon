@@ -1,119 +1,162 @@
-# 🌟 Rating Product & Sorting Reviews on Amazon
 
-This project tackles two critical problems in e-commerce:
-1. **Accurate Product Rating**: Ensuring that product ratings are calculated effectively based on historical reviews.
-2. **Sorting Reviews**: Identifying the most helpful reviews to display prominently, enhancing customer trust and satisfaction.
+###################################################
+# PROJE: Rating Product & Sorting Reviews in Amazon
+###################################################
 
----
+###################################################
+# İş Problemi
+###################################################
 
-## 🚀 Project Overview
+# E-ticaretteki en önemli problemlerden bir tanesi ürünlere satış sonrası verilen puanların doğru şekilde hesaplanmasıdır.
+# Bu problemin çözümü e-ticaret sitesi için daha fazla müşteri memnuniyeti sağlamak, satıcılar için ürünün öne çıkması ve satın
+# alanlar için sorunsuz bir alışveriş deneyimi demektir. Bir diğer problem ise ürünlere verilen yorumların doğru bir şekilde sıralanması
+# olarak karşımıza çıkmaktadır. Yanıltıcı yorumların öne çıkması ürünün satışını doğrudan etkileyeceğinden dolayı hem maddi kayıp
+# hem de müşteri kaybına neden olacaktır. Bu 2 temel problemin çözümünde e-ticaret sitesi ve satıcılar satışlarını arttırırken müşteriler
+# ise satın alma yolculuğunu sorunsuz olarak tamamlayacaktır.
 
-### 📝 Problem Statement
-In e-commerce, misleading ratings and poorly sorted reviews can lead to revenue loss and customer dissatisfaction. By solving these issues:
-- Sellers can boost product visibility and sales.
-- Customers can make informed purchasing decisions.
-- E-commerce platforms can enhance user satisfaction and loyalty.
+###################################################
+# Veri Seti Hikayesi
+###################################################
 
-This project focuses on:
-1. Calculating a **time-based weighted average rating** for products.
-2. Identifying the top **20 most helpful reviews** using statistical scoring techniques.
+# Amazon ürün verilerini içeren bu veri seti ürün kategorileri ile çeşitli metadataları içermektedir.
+# Elektronik kategorisindeki en fazla yorum alan ürünün kullanıcı puanları ve yorumları vardır.
 
----
+# Değişkenler:
+# reviewerID - ID of the reviewer, e.g. A2SUAM1J3GNN3B
+# asin - ID of the product, e.g. 0000013714
+# reviewerName - name of the reviewer
+# helpful - helpfulness rating of the review, e.g. 2/3
+# reviewText - text of the review
+# overall - rating of the product
+# summary - summary of the review
+# unixReviewTime - time of the review (unix time)
+# reviewTime - time of the review (raw)
+# day_diff - Değerlendirmeden itibaren geçen gün sayısı
+# helpful_yes - Değerlendirmenin faydalı bulunma sayısı
+# total_vote - Değerlendirmeye verilen oy sayısı
 
-## 📂 Dataset Description
 
-The dataset includes reviews for a popular product in the **Electronics** category.
+import matplotlib.pyplot as plt
+import pandas as pd
+import math
+import scipy.stats as st
 
-| Feature         | Description                                                       |
-|-----------------|-------------------------------------------------------------------|
-| `reviewerID`    | Unique identifier for the reviewer                                |
-| `asin`          | Unique identifier for the product                                 |
-| `reviewerName`  | Name of the reviewer                                              |
-| `helpful`       | Helpful votes in the format (helpful_yes/total_votes)             |
-| `reviewText`    | Full text of the review                                           |
-| `overall`       | Rating given by the reviewer                                      |
-| `summary`       | Summary of the review                                             |
-| `unixReviewTime`| Review time in Unix format                                        |
-| `reviewTime`    | Review time in raw format                                         |
-| `day_diff`      | Number of days since the review was posted                        |
-| `helpful_yes`   | Number of helpful votes                                           |
-| `total_vote`    | Total number of votes                                             |
+pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_rows', 10)
+pd.set_option('display.expand_frame_repr', False)
+pd.set_option('display.float_format', lambda x: '%.5f' % x)
 
----
+###################################################
+# GÖREV 1: Average Rating'i Güncel Yorumlara Göre Hesaplayınız ve Var Olan Average Rating ile Kıyaslayınız.
+###################################################
 
-## 🔧 Key Features
+# Paylaşılan veri setinde kullanıcılar bir ürüne puanlar vermiş ve yorumlar yapmıştır.
+# Bu görevde amacımız verilen puanları tarihe göre ağırlıklandırarak değerlendirmek.
+# İlk ortalama puan ile elde edilecek tarihe göre ağırlıklı puanın karşılaştırılması gerekmektedir.
 
-### 🛠 Tasks
 
-1. **Calculate Weighted Average Rating**:
-   - Compute a time-based weighted average to give more importance to recent reviews.
-   - Compare the weighted average with the overall average rating.
-2. **Sort Reviews**:
-   - Generate new scoring metrics:
-     - **Positive-Negative Difference**: Helpful votes minus non-helpful votes.
-     - **Average Rating**: Ratio of helpful votes to total votes.
-     - **Wilson Lower Bound (WLB)**: A statistical method for ranking helpful reviews.
-   - Rank reviews using the **Wilson Lower Bound** score.
+###################################################
+# Adım 1: Veri Setini Okutunuz ve Ürünün Ortalama Puanını Hesaplayınız.
+###################################################
 
----
+df = pd.read_csv("datasets/amazon_review.csv")
+df["overall"].mean()
 
-## 📈 Project Workflow
 
-### 1️⃣ Calculate Weighted Average Rating
-- Use review timestamps to assign weights to reviews based on recency:
-  - Reviews in the most recent quarter: **50% weight**.
-  - Reviews in the second most recent quarter: **25% weight**.
-  - Reviews in the third most recent quarter: **15% weight**.
-  - Older reviews: **10% weight**.
-- Compute and compare the weighted and unweighted average ratings.
+###################################################
+# Adım 2: Tarihe Göre Ağırlıklı Puan Ortalamasını Hesaplayınız.
+###################################################
 
-### 2️⃣ Generate Review Scores
-- Create a new column `helpful_no`:
-  - `helpful_no = total_vote - helpful_yes`
-- Calculate scoring metrics for each review:
-  - **Positive-Negative Difference (score_pos_neg_diff)**:
-    - Formula: `helpful_yes - helpful_no`
-  - **Average Rating (score_average_rating)**:
-    - Formula: `helpful_yes / total_vote`
-  - **Wilson Lower Bound (WLB)**:
-    - Formula: Statistical calculation using the binomial distribution to rank helpful reviews.
 
-### 3️⃣ Identify Top Reviews
-- Rank reviews by their **Wilson Lower Bound** score.
-- Select the top 20 reviews to display prominently.
 
----
+# zaman bazlı ortalama ağırlıkların belirlenmesi
+def time_based_weighted_average(dataframe, w1=50, w2=25, w3=15, w4=10):
+    return dataframe.loc[dataframe["day_diff"] <= dataframe["day_diff"].quantile(0.25), "overall"].mean() * w1 / 100 + \
+           dataframe.loc[(dataframe["day_diff"] > dataframe["day_diff"].quantile(0.25)) & (dataframe["day_diff"] <= dataframe["day_diff"].quantile(0.50)), "overall"].mean() * w2 / 100 + \
+           dataframe.loc[(dataframe["day_diff"] > dataframe["day_diff"].quantile(0.50)) & (dataframe["day_diff"] <= dataframe["day_diff"].quantile(0.75)), "overall"].mean() * w3 / 100 + \
+           dataframe.loc[(dataframe["day_diff"] > dataframe["day_diff"].quantile(0.75)), "overall"].mean() * w4 / 100
 
-## 📊 Results
 
-### 🎯 Example Outputs
+# Adım 3: Ağırlıklandırılmış puanlamada her bir zaman diliminin ortalamasını karşılaştırıp yorumlayınız.
 
-#### Weighted Average Rating:
-- **Overall Average Rating**: 4.58  
-- **Time-Based Weighted Average Rating**: 4.68  
 
-#### Top 20 Reviews (by WLB Score):
-- Reviews are ranked to ensure the most reliable and helpful feedback is highlighted for potential customers.
 
----
+###################################################
+# Görev 2: Ürün için Ürün Detay Sayfasında Görüntülenecek 20 Review'i Belirleyiniz.
+###################################################
 
-## 🛠 Tools and Libraries
 
-- **Python**  
-- **Pandas**  
-- **NumPy**  
-- **Scipy**  
-- **Matplotlib**  
+###################################################
+# Adım 1. helpful_no Değişkenini Üretiniz
+###################################################
 
----
+# Not:
+# total_vote bir yoruma verilen toplam up-down sayısıdır.
+# up, helpful demektir.
+# veri setinde helpful_no değişkeni yoktur, var olan değişkenler üzerinden üretilmesi gerekmektedir.
 
-## 🌟 Contribution
 
-Contributions are welcome!  
-Feel free to fork this repository, create issues, or submit pull requests for improvements.
+df["helpful_no"] = df["total_vote"] - df["helpful_yes"]
 
----
+df = df[["reviewerName", "overall", "summary", "helpful_yes", "helpful_no", "total_vote", "reviewTime"]]
 
-## 📜 License
+###################################################
+# Adım 2. score_pos_neg_diff, score_average_rating ve wilson_lower_bound Skorlarını Hesaplayıp Veriye Ekleyiniz
+###################################################
 
-This project is licensed under the [MIT License](LICENSE).
+def wilson_lower_bound(up, down, confidence=0.95):
+    """
+    Wilson Lower Bound Score hesapla
+
+    - Bernoulli parametresi p için hesaplanacak güven aralığının alt sınırı WLB skoru olarak kabul edilir.
+    - Hesaplanacak skor ürün sıralaması için kullanılır.
+    - Not:
+    Eğer skorlar 1-5 arasıdaysa 1-3 negatif, 4-5 pozitif olarak işaretlenir ve bernoulli'ye uygun hale getirilebilir.
+    Bu beraberinde bazı problemleri de getirir. Bu sebeple bayesian average rating yapmak gerekir.
+
+    Parameters
+    ----------
+    up: int
+        up count
+    down: int
+        down count
+    confidence: float
+        confidence
+
+    Returns
+    -------
+    wilson score: float
+
+    """
+    n = up + down
+    if n == 0:
+        return 0
+    z = st.norm.ppf(1 - (1 - confidence) / 2)
+    phat = 1.0 * up / n
+    return (phat + z * z / (2 * n) - z * math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n)
+
+def score_up_down_diff(up, down):
+    return up - down
+
+def score_average_rating(up, down):
+    if up + down == 0:
+        return 0
+    return up / (up + down)
+
+# score_pos_neg_diff
+df["score_pos_neg_diff"] = df.apply(lambda x: score_up_down_diff(x["helpful_yes"], x["helpful_no"]), axis=1)
+
+# score_average_rating
+df["score_average_rating"] = df.apply(lambda x: score_average_rating(x["helpful_yes"], x["helpful_no"]), axis=1)
+
+# wilson_lower_bound
+df["wilson_lower_bound"] = df.apply(lambda x: wilson_lower_bound(x["helpful_yes"], x["helpful_no"]), axis=1)
+
+##################################################
+# Adım 3. 20 Yorumu Belirleyiniz ve Sonuçları Yorumlayınız.
+###################################################
+
+df.sort_values("wilson_lower_bound", ascending=False).head(20)
+
+
+
